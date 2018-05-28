@@ -52,7 +52,7 @@ You should make sure you have VirtualBox and Vagrant installed and up-to-date on
 
 11. `cd` to the Log Analysis Project folder and run the internal reporting tool:
     ```
-    $ cd Log\ Analysis\ Project/
+    $ cd log-analysis-project-fsnd-udacity
     $ python loganalysis.py
     ```
 You should be able to see the contents of Log Analysis Project/output_example.txt displayed on your terminal.
