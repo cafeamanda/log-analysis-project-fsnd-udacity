@@ -24,10 +24,10 @@ You should make sure you have VirtualBox and Vagrant installed and up-to-date on
     8.1.  Create **hits** view
     ```
     news => CREATE VIEW hits AS
-      SELECT articles.author, count(log.id) as pageview
+      SELECT articles.author, articles.title, count(log.id) as views
       FROM articles JOIN log
-      ON log.path LIKE CONCAT('%', articles.slug, '%')
-      GROUP BY articles.author;
+      ON log.path = '/article/'||articles.slug
+      GROUP BY articles.author, articles.title;
     ```
 
     8.2. Create **errors** view
@@ -38,7 +38,6 @@ You should make sure you have VirtualBox and Vagrant installed and up-to-date on
       GROUP BY day
       ORDER BY day ASC;
     ```
-
 
     8.3. Create **hitsbyday** view
     ```
