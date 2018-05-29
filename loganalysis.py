@@ -3,56 +3,88 @@
 import psycopg2
 from datetime import datetime
 
-db = psycopg2.connect("dbname=news")
-c = db.cursor()
+DBNAME = "news"
+
+
+def db_connect():
+    """
+    Creates and returns a connection to the database defined by DBNAME.
+    Returns:
+        db - A connection to the database.
+    """
+    return psycopg2.connect(database=DBNAME)
+
+
+def execute_query(query):
+    """
+    execute_query takes an SQL query as a parameter.
+    Executes the query and returns the results as a list of tuples.
+    args:
+    query - an SQL query statement to be executed.
+
+    returns:
+    A list of tuples containing the results of the query.
+    """
+    db = db_connect()
+    c = db.cursor()
+    c.execute(query)
+    r = c.fetchall()
+    db.close()
+    return r
+
 
 #   What are the most popular three articles of all time?
-popular_articles_query = """
-SELECT articles.title, count(log.id) AS pageview
-FROM articles JOIN log
-ON log.path LIKE CONCAT(\'%\', articles.slug, \'%\')
-GROUP BY articles.title
-ORDER BY pageview DESC
-LIMIT 3
-"""
-c.execute(popular_articles_query)
-popular_articles = c.fetchall()
-print "MOST POPULAR ARTICLES"
-for article in popular_articles:
-    title = str(article[0])
-    views = str(article[1])
-    print u"\u2022" + ' "' + title + '"' + ' - ' + views + " views"
-print
+def print_top_articles():
+    """Prints out the top 3 articles of all time."""
+    popular_articles_query = """
+    SELECT title, views
+    FROM hits
+    ORDER BY views DESC
+    LIMIT 3;
+    """
+    popular_articles = execute_query(popular_articles_query)
+    print "MOST POPULAR ARTICLES"
+    for title, views in popular_articles:
+        print(u'\u2022' + ' "{}" - {} views'.format(title, views))
+
 
 #   Who are the most popular article authors of all time?
-popular_authors_query = """
-SELECT authors.name, hits.pageview
-FROM authors JOIN hits
-ON authors.id = hits.author
-ORDER BY hits.pageview DESC
-"""
-c.execute(popular_authors_query)
-popular_authors = c.fetchall()
-print "MOST POPULAR AUTHORS"
-for author in popular_authors:
-    print u"\u2022 " + str(author[0]) + ' - ' + str(author[1]) + ' views'
-print
+def print_top_authors():
+    """Prints a list of authors ranked by article views."""
+    popular_authors_query = """
+    SELECT authors.name, sum(hits.views) as views
+    FROM authors JOIN hits
+    ON authors.id = hits.author
+    GROUP BY authors.name
+    ORDER BY views DESC
+    """
+    popular_authors = execute_query(popular_authors_query)
+    print "MOST POPULAR AUTHORS"
+    for author in popular_authors:
+        print u"\u2022 " + str(author[0]) + ' - ' + str(author[1]) + ' views'
+
 
 #   On which days did more than 1% of requests lead to errors?
-errors_query = """
-SELECT hitsbyday.day,
-ROUND(100*errors.num_of_errors/hitsbyday.num::numeric, 1)
-AS percentage
-FROM errors JOIN hitsbyday
-ON errors.day = hitsbyday.day
-WHERE 100*errors.num_of_errors/hitsbyday.num > 1
-"""
-c.execute(errors_query)
-errors = c.fetchall()
-print "DAYS WHERE MORE THAN 1% REQUESTS LEAD TO ERRORS"
-for days in errors:
-    s = datetime.strptime(str(days[0]), '%Y-%m-%d')
-    d = s.strftime('%B %d, %Y')
-    print u"\u2022 " + d + ' - ' + str(days[1]) + '% errors'
+def print_errors_over_one():
+    """Prints out the days where more than 1% of logged access
+    requests were errors."""
+    errors_query = """
+    SELECT hitsbyday.day,
+    ROUND(100*errors.num_of_errors/hitsbyday.num::numeric, 1)
+    AS percentage
+    FROM errors JOIN hitsbyday
+    ON errors.day = hitsbyday.day
+    WHERE 100*errors.num_of_errors/hitsbyday.num > 1
+    """
+    errors = execute_query(errors_query)
+    print "DAYS WHERE MORE THAN 1% REQUESTS LEAD TO ERRORS"
+    for days in errors:
+        print(u'\u2022'+' {:%B %d, %Y} - {}% errors'.format(days[0], days[1]))
 
-db.close()
+
+if __name__ == '__main__':
+    print_top_articles()
+    print
+    print_top_authors()
+    print
+    print_errors_over_one()
